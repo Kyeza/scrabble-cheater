@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="table-responsive">
+    <div class="d-flex flex-row bg-primary text-white mt-4 mb-4">
+        <h1 class="lead p-4 mr-auto" style="font-size: 55px"></h1>
+        <form class="p4 align-self-center mr-4 form-inline" method="post">
+            {% csrf_token %}
+            {{ form|crispy }}
+            <input class="btn btn-dark ml-4" type="submit" value="Submit">
+        </form>
+    </div>
+
+</div>
+<div class="jumbotron">
+    <div class="container-fluid">
+        <table id="table_id" class="table table-sm table-bordered w-100 text-center">
+            <caption class="border-bottom mb-4"><span style="color: #2196F3">{{ title }}</span></caption>
+            <thead class="thead-dark">
+            <tr>
+                <th>Word</th>
+                <th>Score</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for word in valid_words %}
+            <tr>
+                <td>{{ word.word }}</td>
+                <td>{{ word.score }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+</div>
+
+{% endblock content %}
+{% block scripts %}
+<script>
+        $(document).ready(function () {
+            $('#table_id thead tr').clone(true).appendTo('#table_id thead');
+            $('#table_id thead tr:eq(1) th').each(function (i) {
+                var title = $(this).text();
+                $(this).html('<input type="text" placeholder="Search ' + title + '" />');
+
+                $('input', this).on('keyup change', function () {
+                    if (table.column(i).search() !== this.value) {
+                        table
+                            .column(i)
+                            .search(this.value)
+                            .draw();
+                    }
+                });
+            });
+
+            let table = $('#table_id').DataTable({
+                "order": [[ 1, "desc" ]],
+                dom: 'lBfrtip',
+                scrollX: true,
+                scrollCollapse: true,
+                autoWidth: true,
+                paging: true,
+                orderCellsTop: true,
+                fixedHeader: true,
+                buttons: [
+                    'copy', 'csv', 'excel',
+                    {
+                        extend: 'pdfHtml5',
+                    },
+                    'print'
+                ],
+                "footerCallback": function (row, data, start, end, display) {
+                    var api = this.api(), data;
+
+                    let colCount = api.columns().header().length;
+
+                    // Remove the formatting to get integer data for summation
+                    let intVal = function (i) {
+                        return typeof i === 'string' ?
+                            i.replace(/[\$,]/g, '') * 1 :
+                            typeof i === 'number' ?
+                                i : 0;
+                    };
+
+                    // Total over all pages
+                    let i;
+                    let total = [];
+                    for (i = 0; i < colCount; i++) {
+                        if (i > 8) {
+                            total[i] = api
+                                .column(i)
+                                .data()
+                                .reduce(function (a, b) {
+                                    return Math.round((intVal(a) + intVal(b)) * 100) / 100;
+                                }, 0);
+                        }
+                    }
+                }
+            });
+        });
+
+
+
+</script>
+{% endblock scripts %}
